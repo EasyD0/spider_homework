@@ -1,0 +1,6 @@
+.spyproject/
+.vscode/
+html/
+pdf/
+*.exe
+*.xlsx

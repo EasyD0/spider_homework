@@ -16,12 +16,15 @@ import xlsxwriter
 
 #_________________________
 
-Target_Url,Excel_Path,Main_Name,Main_Article=input_info('https://ieeexplore.ieee.org/document/8939691/references#references')
-my_keywd=Main_Article.Keywords
-print(my_keywd)
+#可行的测试url='https://ieeexplore.ieee.org/document/8939691/references#references'
+
+Target_Url,Excel_Path,Main_Name,Main_Article=input_info()
+#my_keywd=Main_Article.Keywords
+#print(my_keywd)
 
 ref_link_list=Main_Article.References_Link
-similar_link_list=get_Link_of_kwds(my_keywd)
+similar_link_list=Main_Article.Similar_Link
+#similar_link_list=get_Link_of_kwds(my_keywd)
 
 #print(ref_link_list)
 #print(similar_link_list)
@@ -98,7 +101,7 @@ with pd.ExcelWriter(Excel_Path) as writer:
     df_ref.to_excel(writer, sheet_name='参考文献')
     #df_similar.to_excel(writer, sheet_name='相似文献')
 '''
-
+print('OK')
 
 
 

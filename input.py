@@ -52,7 +52,7 @@ def input_info(target_url='',
     while True:
         target_url = input("输入主要链接:")
         print("正在检测链接是否有效")
-        article = Article(target_url, True)
+        article = Article(target_url, main_index=True)
 
         if article.Title:
             print('链接有效')

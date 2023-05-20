@@ -141,6 +141,7 @@ class Article:
         self.Doi=''
         self.Similar_Link=[]
         #Ris_Index=False  
+        return True
     
     def get_all(self):
         if self.Url or self.Title:
@@ -194,13 +195,9 @@ class Article:
             #print('已有标题')
             return True
         
-        elif self.Html:
+        elif self.get_html():
             bs=BeautifulSoup(self.Html,"lxml")
             self.Title=bs.find("title").find_next_sibling().get('content') # type: ignore
-            return True
-        
-        elif self.get_url():
-
             return True
         else:
             print('get_title:获取标题失败,文章未定义,链接缺失')
@@ -211,12 +208,10 @@ class Article:
         #print("get_html")
         #if self.Url:  #如果加了这行, 后面很多函数在 做 get_html之前不用再检测  //更新下,这行不能要
         #为何不在这里检测Url?? 是为了防止循环 例如在get_abstract 中没有 if self.Url检测,则陷入循环
-        if self.Url:
-            self.Html=urlopen(self.Url).read().decode() #byte类型->字符型
+        if self.Html:
             return True
-        elif self.Title:
-            self.get_url()
-            self.get_html()
+        elif self.get_url():
+            self.Html=urlopen(self.Url).read().decode() #byte类型->字符型
             return True
         return False
 #_________________________________________________________
@@ -224,7 +219,10 @@ class Article:
     def get_html_driver(self):
         #print("get_html_driver")
         #注意驱动的位置
-        if self.Url:
+        if self.Html_Driver:
+            return True
+        
+        elif self.get_url():
             service = ChromeService(executable_path='./chromedriver.exe')
             options = webdriver.ChromeOptions()
             options.add_argument('--headless=new')
@@ -235,9 +233,6 @@ class Article:
             self.Html_Driver = driver.page_source
             driver.quit()
             return True
-        elif self.get_url():
-            self.get_html_driver()
-            return True
         else:
             return False
 #_________________________________________________________
@@ -246,10 +241,10 @@ class Article:
         #print("get_abstract")
         #如果发生异常,需要修改包'translators'的源码,将链接translate.google.cn改为.com
         if self.Abstract:
-            print('已有摘要')
+            #print('已有摘要')
             return True
     
-        elif self.Html:
+        elif self.get_html():
             bs=BeautifulSoup(self.Html,"lxml")
             self.Abstract = str(bs.find('meta', {'property': 'twitter:description'})['content'])# type: ignore #.replace('\n','')
             #用str防止Nonetype 报错 !似乎不需要了
@@ -267,10 +262,6 @@ class Article:
         #    self.get_url()
         #    self.get_abstract()
         #    return True
-
-        elif self.get_html():
-            self.get_abstract()
-            return True
         else:
             print('get_abstract:获取摘要失败,文章未定义,链接标题缺失')
             return False
@@ -280,7 +271,7 @@ class Article:
     def get_date(self):
         #print("get_date")
         if self.Date:
-            print('已有日期')
+            #print('已有日期')
             return True
         
         #elif self.Html_Driver:
@@ -313,17 +304,13 @@ class Article:
     def get_doi(self):
         #print("get_doi")
         if self.Doi:
-            print("已经有了Doi")
-            return True
-        
-        elif self.Html_Driver:
-            bs_driver=BeautifulSoup(self.Html_Driver,"lxml")
-            self.Doi=bs_driver.find('strong', text='DOI: ').find_next_sibling().get_text() # type: ignore
-            #Doi_link='https://doi.org/'+doi
+            #print("已经有了Doi")
             return True
         
         elif self.get_html_driver():
-            self.get_doi()
+            bs_driver=BeautifulSoup(self.Html_Driver,"lxml")
+            self.Doi=bs_driver.find('strong', text='DOI: ').find_next_sibling().get_text() # type: ignore
+            #Doi_link='https://doi.org/'+doi
             return True
         else:
             print('获取doi失败,文章未定义,链接缺失')
@@ -333,15 +320,12 @@ class Article:
     def get_journal_name(self):
         #print("get_journal_name")
         if self.Journal_Name:
-            print("已经有了期刊名/会议名")
+            #print("已经有了期刊名/会议名")
             return True
         
-        elif self.Html_Driver:
+        elif self.get_html_driver():
             bs_driver=BeautifulSoup(self.Html_Driver,"lxml")
             self.Journal_Name=bs_driver.find('strong', text='Published in: ').find_next_sibling().get_text() # type: ignore
-            return True
-        elif self.get_html_driver():
-            self.get_journal_name()
             return True
         else:
             print('get_journal_name:获取期刊名/会议名失败,文章未定义,链接缺失')
@@ -351,9 +335,9 @@ class Article:
     def get_keywords(self): #Html
         #print("get_keywords")
         if self.Keywords:
-            print("已经有了关键词")
+            #print("已经有了关键词")
             return True
-        elif self.Html:
+        elif self.get_html():
             match=re.search(r'"Author Keywords\s*","kwd":\[.*?\]',self.Html,re.DOTALL)
             match=re.search(r'\[.*\]',match.group(),re.DOTALL)
             if match:
@@ -383,10 +367,7 @@ class Article:
             self.Keywords=json.loads(All_Keywords_list_string.group())[3]['kwd'] # type: ignore
             return True
             '''
-        
-        elif self.get_html():
-            self.get_keywords()
-            return True
+
         else:
             print("get_keywords:获取关键词失败,文章未定义,链接缺失")
             return False
@@ -394,7 +375,7 @@ class Article:
 
     def get_journal_index(self):
         #print("get_journal_index")
-        if self.Html_Driver:
+        if self.get_html_driver():
             bs_driver=BeautifulSoup(self.Html_Driver,"lxml")
 
             if bs_driver.find(href="/browse/periodicals/title/"):
@@ -402,10 +383,6 @@ class Article:
                 return True
             else:
                 return True
-        
-        elif self.get_html_driver():
-            self.get_journal_index()
-            return True
         else:
             print("get_journal_index:获取期刊会议指标失败,文章未定义,链接缺失")
             return False
@@ -413,7 +390,7 @@ class Article:
 
     def get_impact_factor(self):
         if self.Impact_Factor:
-            print('已有影响因子')
+            #print('已有影响因子')
             return True
         #print("get_impact_factor")
         #elif self.Html_Driver:
@@ -445,9 +422,6 @@ class Article:
                 else :
                     self.Impact_Factor=''
                     return True
-        elif self.get_html_driver():
-            self.get_impact_factor()
-            return True
         else:
             print("get_impact_factor:获取因子失败,文章未定义,链接缺失")
             return False
@@ -457,7 +431,7 @@ class Article:
         #print("get_reference_link")
         if self.References_Link:
             return True
-        if self.Html_Driver:
+        if self.get_html_driver():
             bs_driver=BeautifulSoup(self.Html_Driver,"lxml")
             View_Article=bs_driver.find_all("a",{"class":'stats-reference-link-viewArticle'})
             #CrossRef=bs_driver.find_all("a",{"class":'stats-reference-link-crossRef'})
@@ -478,17 +452,13 @@ class Article:
                     CrossRef_list.append(article.get("href"))
             '''
             return True
-
-        elif self.get_html_driver():
-            self.get_reference_link()
-            return True
         else:
             print("get_reference_link:获取参考文献失败,文章未定义,链接缺失")
             return False   
 #_________________________________________________________
 
     def get_pdf(self, save_path='.\\pdf\\'):#需要添加异常处理,如没有获取到文档
-        if self.Doi:
+        if self.get_doi():
 
             scihub_link='https://sci-hub.se/'+self.Doi
             scihub_html=urlopen(scihub_link).read()
@@ -503,30 +473,19 @@ class Article:
             with open(save_path+file_name, 'wb') as f:
                 f.write(response.content)
             return True
-        elif self.Url:
-            print('get_pdf:文章链接存在,尝试获取Doi')
-            self.get_doi()
-            self.get_pdf()
-            return True
-        elif self.Title:
-            self.get_url()
-            self.get_pdf()
-            return True
         else:
             print("get_pdf:获取pdf失败,文章未定义,链接缺失")
             return False
 #_________________________________________
 
     def get_ris(self,save_path=''):
-        if not self.Title:
-            if not self.Url:
-                print("get_ris:下载ris失败,没有标题,且链接缺失")
-                return False
-            else:
-                self.get_title()
-                if not self.Title:
-                    print('get_ris:获取ris失败,无法获取标题,可能无网络')
-                    return False
+        if self.get_doi():
+            #TODO 参考下载方法
+            return True
+        else:
+            print("get_ris:下载ris失败,没有标题,且链接缺失")
+            return False
+
 
         save_path = '.\\{}.pdf'.format(self.Title) if not save_path else save_path
         #TODO 具体算法
@@ -535,7 +494,41 @@ class Article:
 #_________________________________________________________
 
     def get_similar_link(self): #TODO
-        return True
+        if self.Similar_Link:
+            return True
+        elif self.get_keywords():
+            base_url = "https://ieeexplore.ieee.org/search/searchresult.jsp?action=search&newsearch=true&matchBoolean=true&queryText="
+            query = " OR ".join('("%s":"%s")' % ("All Metadata", item) for item in self.Keywords)
+            url = base_url + query
+            service = ChromeService(executable_path='./chromedriver.exe')
+            options = webdriver.ChromeOptions()
+            options.add_argument('--headless=new')
+            MyDriver = webdriver.Chrome(options=options, service=service)
+            #MyDriver = webdriver.Chrome(options=webdriver.ChromeOptions().add_argument('--headless=new'))# type: ignore
+            MyDriver.get(url)
+            time.sleep(5)
+            html = MyDriver.page_source
+            MyDriver.quit()
+
+            #html_byte=urlopen(url).html.read()
+
+            soup = BeautifulSoup(html, features="lxml")
+            results = soup.find_all("h3")
+            link_list=[]
+
+            for results_i in results:
+                if results_i.find("a"):
+                    href=results_i.find("a").get("href")
+                    link_list.append(href)
+
+            link_list=sorted(set(link_list),key=link_list.index)
+
+            self.Similar_Link= ['https://ieeexplore.ieee.org'+link for link in link_list]
+            return True
+        else:
+            print('失败')
+            return False
+
 
 
 if __name__=="__main__":
@@ -544,8 +537,9 @@ if __name__=="__main__":
 
     conference=Article(url_conference,main_index=True)
     trans=Article(url_trans,ris_index=True)
-
-    print(conference.Main_Index)
+    print(conference)
+    print(trans)
+'''    print(conference.Main_Index)
     print(conference.Journal_Index)
     print(conference.Title)
     print(conference.Date)
@@ -567,4 +561,4 @@ if __name__=="__main__":
     print(trans.Keywords)
     print(trans.References_Link)
     print(trans.Impact_Factor)
-    print(trans.Doi)
+    print(trans.Doi)'''

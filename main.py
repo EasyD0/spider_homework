@@ -18,6 +18,7 @@ import xlsxwriter
 
 Target_Url,Excel_Path,Main_Name,Main_Article=input_info('https://ieeexplore.ieee.org/document/8939691/references#references')
 my_keywd=Main_Article.Keywords
+print(my_keywd)
 
 ref_link_list=Main_Article.References_Link
 similar_link_list=get_Link_of_kwds(my_keywd)

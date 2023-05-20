@@ -8,7 +8,7 @@ import translators as ts
 import json
 import requests
 import os
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
 
 class Article:
     #公共成员
@@ -101,7 +101,11 @@ class Article:
     def get_html_driver(self):
         #print("get_html_driver")
         #注意驱动的位置
-        driver = webdriver.Chrome(executable_path=".\\chromedriver.exe",options=webdriver.Chromewebdriver.Chromewebdriver.ChromeOptions().add_argument("--headless"))
+        service = ChromeService(executable_path='./chromedriver.exe')
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless=new')
+        driver = webdriver.Chrome(options=options, service=service)
+        #driver = webdriver.Chrome(options=webdriver.ChromeOptions().add_argument('--headless=new'))
         driver.get(self.Url)
         time.sleep(10)
         self.Html_Driver = driver.page_source
@@ -290,8 +294,11 @@ class Article:
                     self.Journal_Index=True  #this is a Journals or Magazines paper'
 
                     journal_link='https://ieeexplore.ieee.org'+bs_driver.find('strong', text='Published in: ').find_next_sibling().get('href')
-
-                    driver = webdriver.Chrome(executable_path=".\\chromedriver.exe",options=webdriver.Chromewebdriver.ChromeOptions().add_argument("--headless"))
+                    service = ChromeService(executable_path='./chromedriver.exe')
+                    options = webdriver.ChromeOptions()
+                    options.add_argument('--headless=new')
+                    driver = webdriver.Chrome(options=options, service=service)
+                    #driver = webdriver.Chrome(options=webdriver.ChromeOptions().add_argument('--headless=new'))
                     driver.get(journal_link)
                     time.sleep(5)
                     journal_html = driver.page_source

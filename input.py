@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from article import Article
 #from selenium.webdriver.chrome.options import Options
 #import requests
+from selenium.webdriver.chrome.service import Service as ChromeService
 
 
 '''def input_info(target_url='',
@@ -29,7 +30,7 @@ from article import Article
             url=("https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText="+Main_Name).replace(' ','%20')
             
             #注意驱动的位置
-            driver = webdriver.Chrome(executable_path=".\\chromedriver.exe",options=webdriver.ChromeOptions().add_argument("--headless"))
+            driver = webdriver.Chrome(options=webdriver.ChromeOptions().add_argument('--headless=new'))
             driver.get(url)
             time.sleep(5)
             html_driver= driver.page_source
@@ -63,7 +64,10 @@ def input_info(target_url='',
                 url = ("https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText=" + main_name).replace(' ', '%20')
 
                 # 注意驱动的位置
-                driver = webdriver.Chrome(executable_path=".\\chromedriver.exe",options=webdriver.ChromeOptions().add_argument("--headless"))# type: ignore
+                service = ChromeService(executable_path='./chromedriver.exe')
+                options = webdriver.ChromeOptions()
+                options.add_argument('--headless=new')
+                driver = webdriver.Chrome(options=options,service=service)# type: ignore
                 driver.get(url)
                 time.sleep(5)
                 html_driver = driver.page_source

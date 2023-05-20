@@ -1,6 +1,11 @@
 .spyproject/
 .vscode/
+__pycache__/
 html/
 pdf/
+.idea/
 *.exe
 *.xlsx
+
+
+

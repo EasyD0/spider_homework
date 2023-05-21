@@ -1,14 +1,31 @@
-import time
-from selenium import webdriver
-#from selenium.webdriver.support.ui import WebDriverWait
-from bs4 import BeautifulSoup
-from urllib.request import urlopen
-import re
-import translators as ts
 import json
-import requests
 import os
+import re
+import time
+from urllib.request import urlopen
+
+import requests
+import translators as ts
+from bs4 import BeautifulSoup
+from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
+
+
+def chrome_geturl(url):
+    service = ChromeService(executable_path='./chromedriver.exe')
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless=new')
+    driver = webdriver.Chrome(options=options,service=service) # type: ignore
+    driver.get(url)
+    wait = WebDriverWait(driver, 20) 
+    wait.until(lambda driver: driver.execute_script("return document.readyState") == "complete")
+    html_driver = driver.page_source
+    driver.quit()
+    return html_driver
+
 
 class Article:
     #公共成员
@@ -35,17 +52,7 @@ class Article:
     #Ris_Index=False
 #_________________________________________________________
     def __str__(self):
-        return ('Title:{}\n\
-                Date:{}\n\
-                Journal_Name:{}\n\
-                Impact_Factor:{}\n\
-                Keywords:{}\n\
-                Doi:{}\n\
-                Url:{}\n\
-                References_Link:{}\n\
-                Similar_Link:{}\n\
-                Abstract:{}\n\
-                Abstract_Translation:{}'
+        return ('Title:{}\nDate:{}\nJournal_Name:{}\nImpact_Factor:{}\nKeywords:{}\nDoi:{}\nUrl:{}\nReferences_Link:{}\nSimilar_Link:{}\nAbstract:{}\nAbstract_Translation:{}'
                 .format(self.Title,
                         self.Date,
                         self.Journal_Name,
@@ -80,9 +87,9 @@ class Article:
             if key =='Abstract' or 'abstract':
                 self.Abstract=wd
         '''
-        if do_nothing=='yes':
+        if do_nothing:
             print("什么都没做,但可能传入了链接和main_index")
-            return True
+            return
         if url or title:
 
             '''            
@@ -167,16 +174,7 @@ class Article:
             return True
         elif self.Title:
             url = ("https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText=" + self.Title).replace(' ', '%20') # type: ignore
-
-            # 注意驱动的位置
-            service = ChromeService(executable_path='./chromedriver.exe')
-            options = webdriver.ChromeOptions()
-            options.add_argument('--headless=new')
-            driver = webdriver.Chrome(options=options,service=service) # type: ignore
-            driver.get(url)
-            time.sleep(5)
-            html_driver = driver.page_source
-            driver.quit()
+            html_driver = chrome_geturl(url)
             bs = BeautifulSoup(html_driver, 'lxml')
             self.Url = 'https://ieeexplore.ieee.org' + bs.find('h3', {'class': "text-md-md-lh"}).find('a').get('href')# type: ignore
             return True
@@ -223,15 +221,8 @@ class Article:
             return True
         
         elif self.get_url():
-            service = ChromeService(executable_path='./chromedriver.exe')
-            options = webdriver.ChromeOptions()
-            options.add_argument('--headless=new')
-            driver = webdriver.Chrome(options=options, service=service)
-            #driver = webdriver.Chrome(executable_path='./chromedriver.exe',options=webdriver.ChromeOptions().add_argument('--headless=new')) # type: ignore
-            driver.get(self.Url)
-            time.sleep(10)
-            self.Html_Driver = driver.page_source
-            driver.quit()
+            url=self.Url+'references#references' if self.Url[-1]=='/' else self.Url+'/references#references'
+            self.Html_Driver = chrome_geturl(url)
             return True
         else:
             return False
@@ -246,12 +237,20 @@ class Article:
     
         elif self.get_html():
             bs=BeautifulSoup(self.Html,"lxml")
-            self.Abstract = str(bs.find('meta', {'property': 'twitter:description'})['content'])# type: ignore #.replace('\n','')
-            #用str防止Nonetype 报错 !似乎不需要了
+            try:
+                self.Abstract = bs.find('meta', {'property': 'twitter:description'})['content']# type: ignore #.replace('\n','')
+            except:
+                print(f'该文章没有摘要{self.Url}')
+                return True
             
             if self.Abstract:
-                #5.16日之后的tranlators 包修改了方法,如果报错没有该方法,请根据官网文档自行修改
-                self.Abstract_Translation=ts.google(self.Abstract,from_language="en",to_language='zh', host_url="https://translate.google.com/")
+                try:
+                    #5.16日之后的tranlators 包修改了方法,如果报错没有该方法,请根据官网文档自行修改
+                    self.Abstract_Translation=ts.google(self.Abstract,from_language="en",to_language='zh', host_url="https://translate.google.com/")
+                    return True
+                except:
+                    print(f'翻译失败{self.Url}')
+                    return True
             return True
            
         #elif self.Url:
@@ -275,27 +274,21 @@ class Article:
             return True
         
         #elif self.Html_Driver:
-        elif self.get_journal_index():
+        elif self.get_html_driver():
             bs_driver=BeautifulSoup(self.Html_Driver,"lxml")
-            
-            if self.Journal_Index:
+            try:
                 if bs_driver.find('strong', text='Date of Publication:'):
                     self.Date=bs_driver.find('strong', text='Date of Publication:').next_sibling # type: ignore
                     return True
-                else:
-                    print('无日期信息')
-                    return False
-            else:
-                if bs_driver.find('strong', text='Date of Conference: '):
+
+                elif bs_driver.find('strong', text='Date of Conference: '):
                     self.Date=bs_driver.find('strong', text='Date of Conference: ').next_sibling # type: ignore
                     return True
-                else:
-                    print('无日期信息')
-                    return False    
-
-        elif self.get_html_driver():
-            self.get_date()
-            return True
+                print(f'无日期信息{self.Url}')
+                return False
+            except:
+                print(f'无日期信息{self.Url}')
+                return False
         else:
             print('get_date:获取日期失败,文章未定义,链接缺失')
             return False
@@ -309,9 +302,13 @@ class Article:
         
         elif self.get_html_driver():
             bs_driver=BeautifulSoup(self.Html_Driver,"lxml")
-            self.Doi=bs_driver.find('strong', text='DOI: ').find_next_sibling().get_text() # type: ignore
-            #Doi_link='https://doi.org/'+doi
-            return True
+            try:
+                self.Doi=bs_driver.find('strong', text='DOI: ').find_next_sibling().get_text() # type: ignore
+                #Doi_link='https://doi.org/'+doi
+                return True
+            except:
+                print(f'没有Doi{self.Url}')
+                return True
         else:
             print('获取doi失败,文章未定义,链接缺失')
             return False
@@ -325,8 +322,11 @@ class Article:
         
         elif self.get_html_driver():
             bs_driver=BeautifulSoup(self.Html_Driver,"lxml")
-            self.Journal_Name=bs_driver.find('strong', text='Published in: ').find_next_sibling().get_text() # type: ignore
-            return True
+            try:
+                self.Journal_Name=bs_driver.find('strong', text='Published in: ').find_next_sibling().get_text() # type: ignore
+                return True
+            except:
+                print(f'没有期刊名{self.Url}')
         else:
             print('get_journal_name:获取期刊名/会议名失败,文章未定义,链接缺失')
             return False
@@ -339,35 +339,13 @@ class Article:
             return True
         elif self.get_html():
             match=re.search(r'"Author Keywords\s*","kwd":\[.*?\]',self.Html,re.DOTALL)
-            match=re.search(r'\[.*\]',match.group(),re.DOTALL)
             if match:
+                match=re.search(r'\[.*\]',match.group(),re.DOTALL)
                 self.Keywords=json.loads(match.group())
                 return True
             else:
                 print('没有作者关键词')
-                return False
-            '''            
-            bs=BeautifulSoup(self.Html,"lxml")
-            temp=bs.find("body",{"class","body-resp"}).find('div', id="LayoutWrapper").find('div', {"class",'col'}).find_all("script", type="text/javascript") # type: ignore
-            for script_tag in temp:
-                if script_tag:
-                    script_text=script_tag.string
-                    if script_text:
-                        match = re.search(r'xplGlobal\.document\.metadata\s*=\s*(\{.*?\};)', script_text, re.DOTALL) #正则表达式匹配
-                        if match:
-                            metadata_text = match.group()
-                            break
-                    else:
-                        continue
-                else:
-                    continue
-            
-            keywords_string=re.search(r'"keywords":\s*\[.*?\],"', metadata_text, re.DOTALL).group() # type: ignore
-            All_Keywords_list_string=re.search(r'\[.*\]', keywords_string, re.DOTALL)
-            self.Keywords=json.loads(All_Keywords_list_string.group())[3]['kwd'] # type: ignore
-            return True
-            '''
-
+                return True
         else:
             print("get_keywords:获取关键词失败,文章未定义,链接缺失")
             return False
@@ -401,23 +379,17 @@ class Article:
                 bs_driver=BeautifulSoup(self.Html_Driver,"lxml")
 
                 if bs_driver.find(href="/browse/periodicals/title/"):
-                    
-                    self.Journal_Index=True  #this is a Journals or Magazines paper'
 
-                    journal_link='https://ieeexplore.ieee.org'+bs_driver.find('strong', text='Published in: ').find_next_sibling().get('href') # type: ignore
-                    
-                    service = ChromeService(executable_path='./chromedriver.exe')
-                    options = webdriver.ChromeOptions()
-                    options.add_argument('--headless=new')
-                    driver = webdriver.Chrome(options=options, service=service)
-                    #driver = webdriver.Chrome(executable_path='./chromedriver.exe',options=webdriver.ChromeOptions().add_argument('--headless=new'))
-                    driver.get(journal_link)
-                    time.sleep(5)
-                    journal_html = driver.page_source
-                    driver.quit()
+                    try:
+                        self.Journal_Index=True  #this is a Journals or Magazines paper'
 
-                    bs_temp=BeautifulSoup(journal_html,"lxml")
-                    self.Impact_Factor=bs_temp.find('a',{'class':'stats-jhp-impact-factor'}).find('span',{'class':'text-md-md-lh'}).get_text() # type: ignore
+                        journal_link='https://ieeexplore.ieee.org'+bs_driver.find('strong', text='Published in: ').find_next_sibling().get('href') # type: ignore
+                        journal_html = chrome_geturl(journal_link)
+
+                        bs_temp=BeautifulSoup(journal_html,"lxml")
+                        self.Impact_Factor=bs_temp.find('a',{'class':'stats-jhp-impact-factor'}).find('span',{'class':'text-md-md-lh'}).get_text() # type: ignore
+                    except:
+                        print(f'无法获取因子{self.Url}')
                     return True
                 else :
                     self.Impact_Factor=''
@@ -435,6 +407,9 @@ class Article:
             bs_driver=BeautifulSoup(self.Html_Driver,"lxml")
             View_Article=bs_driver.find_all("a",{"class":'stats-reference-link-viewArticle'})
             #CrossRef=bs_driver.find_all("a",{"class":'stats-reference-link-crossRef'})
+            if not View_Article:
+                print('没有IEEE上的参考文献')
+                return True
             
             View_Article_list=[]
             #CrossRef_list=[]
@@ -464,10 +439,12 @@ class Article:
             scihub_html=urlopen(scihub_link).read()
             bs_pdf=BeautifulSoup(scihub_html,"lxml")
             pdf_link='https:'+bs_pdf.find('embed',{'type':"application/pdf"}).get('src') # type: ignore
-
+        
+            if not pdf_link:
+                print('no pdf file')
+                return True
+            
             response = requests.get(pdf_link)
-
-
             file_name =self.Title+'.pdf' if self.Title else os.path.basename(pdf_link)+'.pdf' # type: ignore
 
             with open(save_path+file_name, 'wb') as f:
@@ -500,19 +477,20 @@ class Article:
             base_url = "https://ieeexplore.ieee.org/search/searchresult.jsp?action=search&newsearch=true&matchBoolean=true&queryText="
             query = " OR ".join('("%s":"%s")' % ("All Metadata", item) for item in self.Keywords)
             url = base_url + query
+
             service = ChromeService(executable_path='./chromedriver.exe')
             options = webdriver.ChromeOptions()
             options.add_argument('--headless=new')
-            MyDriver = webdriver.Chrome(options=options, service=service)
-            #MyDriver = webdriver.Chrome(options=webdriver.ChromeOptions().add_argument('--headless=new'))# type: ignore
-            MyDriver.get(url)
-            time.sleep(5)
-            html = MyDriver.page_source
-            MyDriver.quit()
+            driver = webdriver.Chrome(options=options,service=service) # type: ignore
+            driver.get(url)
+            WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME,'text-md-md-lh')))
+            
+            html_driver = driver.page_source
+            driver.quit()
 
             #html_byte=urlopen(url).html.read()
 
-            soup = BeautifulSoup(html, features="lxml")
+            soup = BeautifulSoup(html_driver, features="lxml")
             results = soup.find_all("h3")
             link_list=[]
 
@@ -528,8 +506,6 @@ class Article:
         else:
             print('失败')
             return False
-
-
 
 if __name__=="__main__":
     url_conference="https://ieeexplore.ieee.org/document/7809977"

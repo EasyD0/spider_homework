@@ -1,6 +1,6 @@
 import time
 from selenium import webdriver
-#from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.wait import WebDriverWait
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -17,7 +17,9 @@ def get_Link_of_kwds(keywords_list,**kwargs):
     MyDriver = webdriver.Chrome(options=options, service=service)
     #MyDriver = webdriver.Chrome(options=webdriver.ChromeOptions().add_argument('--headless=new'))# type: ignore
     MyDriver.get(url)
-    time.sleep(5)
+    wait = WebDriverWait(MyDriver, 20) 
+    wait.until(lambda driver: driver.execute_script("return document.readyState") == "complete")
+
     html = MyDriver.page_source
     MyDriver.quit()
 

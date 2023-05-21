@@ -1,12 +1,13 @@
 import time
-from selenium import webdriver
+
 from bs4 import BeautifulSoup
-#from urllib.request import urlopen
-from article import Article
+from selenium import webdriver
 #from selenium.webdriver.chrome.options import Options
 #import requests
 from selenium.webdriver.chrome.service import Service as ChromeService
 
+#from urllib.request import urlopen
+from article import Article
 
 '''def input_info(target_url='',
                excel_path='.\\output.xlsx',
@@ -52,7 +53,7 @@ def input_info(target_url='',
     while True:
         target_url = input("输入主要链接:")
         print("正在检测链接是否有效")
-        article = Article(target_url, main_index=True)
+        article = Article(url=target_url, main_index=True)
 
         if article.Title:
             print('链接有效')
@@ -60,7 +61,11 @@ def input_info(target_url='',
         else:
             print('链接无效')
             main_name = input("输入主要文章名:")
+                
             if main_name:
+                article=Article(title=main_name)
+                break
+                '''
                 url = ("https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText=" + main_name).replace(' ', '%20')
 
                 # 注意驱动的位置
@@ -75,8 +80,12 @@ def input_info(target_url='',
                 bs = BeautifulSoup(html_driver, 'lxml')
                 target_url = 'https://ieeexplore.ieee.org' + bs.find('h3', {'class': "text-md-md-lh"}).find('a').get('href')# type: ignore
                 break
+                '''
             else:
                 print('未输入有效信息,将重新开始')
-
+    article.get_similar_link()
+    article.get_reference_link()
+    target_url=article.Url
     print('将对该链接进行爬取:{}'.format(target_url))
+    print(article)
     return target_url, excel_path, main_name, article

@@ -9,7 +9,7 @@
 
 #import requests
 from article import Article
-from get_link import get_Link_of_kwds
+from old_get_link import get_Link_of_kwds
 import pandas as pd
 from input import input_info
 from concurrent.futures import ThreadPoolExecutor, as_completed

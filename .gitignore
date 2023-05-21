@@ -6,6 +6,8 @@ pdf/
 .idea/
 *.exe
 *.xlsx
+*.pyc
+
 
 
 

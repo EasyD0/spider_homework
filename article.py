@@ -26,7 +26,6 @@ def chrome_geturl(url):
     driver.quit()
     return html_driver
 
-
 class Article:
     #公共成员
     Main_Index=False  #用户指定
@@ -52,7 +51,7 @@ class Article:
     #Ris_Index=False
 #_________________________________________________________
     def __str__(self):
-        return ('Title:{}\nDate:{}\nJournal_Name:{}\nImpact_Factor:{}\nKeywords:{}\nDoi:{}\nUrl:{}\nReferences_Link:{}\nSimilar_Link:{}\nAbstract:{}\nAbstract_Translation:{}'
+        return ('Title:{}\n\nDate:{}\n\nJournal_Name:{}\n\nImpact_Factor:{}\n\nKeywords:{}\n\nDoi:{}\n\nUrl:{}\n\nReferences_Link:{}\n\nSimilar_Link:{}\n\nAbstract:{}\n\nAbstract_Translation:{}\n'
                 .format(self.Title,
                         self.Date,
                         self.Journal_Name,
@@ -65,13 +64,14 @@ class Article:
                         self.Abstract,
                         self.Abstract_Translation)
         )
+#_________________________________________________________
 
     def __init__(self,
                  url='',
                  title='',
                  main_index=False, 
                  ris_index=False, 
-                 do_nothing=''):
+                 do_nothing=False):
         #TODO 初始化时,可以选择是否需要下载RIS 因为下载RIS时需要打开文章网页,并进行点击操作,若下载不再初始化的时候就完成,第二时间去下载又要访问一次网页,浪费时间
         self.Url=url
         self.Main_Index=main_index
@@ -88,15 +88,9 @@ class Article:
                 self.Abstract=wd
         '''
         if do_nothing:
-            print("什么都没做,但可能传入了链接和main_index")
+            #print("什么都没做,但可能传入了链接和main_index")
             return
         if url or title:
-
-            '''            
-            self.get_html()
-            if not self.Main_Index:
-                self.get_html_driver()
-            '''
 
             #self.get_html()
             #self.get_html_driver()
@@ -132,6 +126,8 @@ class Article:
             self.get_abstract()
             self.get_title()
         '''
+#_________________________________________________________
+
     def reset(self):
         self.Journal_Index=False
         self.Html=''
@@ -149,7 +145,8 @@ class Article:
         self.Similar_Link=[]
         #Ris_Index=False  
         return True
-    
+#_________________________________________________________
+
     def get_all(self):
         if self.Url or self.Title:
             self.get_title() #无需检测值是否存在,函数内自己会检测
@@ -332,9 +329,12 @@ class Article:
             return False
 #_________________________________________________________
 
-    def get_keywords(self): #Html
+    def get_keywords(self,kw=[]): #Html
         #print("get_keywords")
-        if self.Keywords:
+        if kw:
+            self.Keywords=kw
+            return True
+        elif self.Keywords:
             #print("已经有了关键词")
             return True
         elif self.get_html():
@@ -515,26 +515,3 @@ if __name__=="__main__":
     trans=Article(url_trans,ris_index=True)
     print(conference)
     print(trans)
-'''    print(conference.Main_Index)
-    print(conference.Journal_Index)
-    print(conference.Title)
-    print(conference.Date)
-    print(conference.Journal_Name)
-    print(conference.Abstract)
-    print(conference.Abstract_Translation)
-    print(conference.Keywords)
-    print(conference.References_Link)
-    print(conference.Impact_Factor)
-    print(conference.Doi)
-
-    print(trans.Main_Index)
-    print(trans.Journal_Index)
-    print(trans.Title)
-    print(trans.Date)
-    print(trans.Journal_Name)
-    print(trans.Abstract)
-    print(trans.Abstract_Translation)
-    print(trans.Keywords)
-    print(trans.References_Link)
-    print(trans.Impact_Factor)
-    print(trans.Doi)'''

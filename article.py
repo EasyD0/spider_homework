@@ -44,6 +44,7 @@ class Article:
     #主要成员
     Keywords=[]    #依赖html
     References_Link=[] #依赖html_driver
+    Similar_Type=False #false 表示不筛选
     Similar_Link=[]
     #参考成员
     Impact_Factor='' #依赖html_driver
@@ -104,14 +105,15 @@ class Article:
                 self.get_reference_link()
                 self.get_similar_link()
             else:
+                if ris_index:
+                    self.get_ris()
                 self.get_title()
                 self.get_date()
                 self.get_journal_name()
                 self.get_abstract()
                 self.get_impact_factor()
                 self.get_doi()
-                if ris_index:
-                    self.get_ris()
+
         else:
             print("警告,该文章类没有传入链接,文章未定义")
 
@@ -243,7 +245,7 @@ class Article:
             if self.Abstract:
                 try:
                     #5.16日之后的tranlators 包修改了方法,如果报错没有该方法,请根据官网文档自行修改
-                    self.Abstract_Translation=ts.google(self.Abstract,from_language="en",to_language='zh', host_url="https://translate.google.com/")
+                    self.Abstract_Translation=ts.google(self.Abstract,from_language="en",to_language='zh', host_url="https://translate.google.com/") # type: ignore
                     return True
                 except:
                     print(f'翻译失败{self.Url}')
@@ -305,7 +307,7 @@ class Article:
                 return True
             except:
                 print(f'没有Doi{self.Url}')
-                return True
+                return False
         else:
             print('获取doi失败,文章未定义,链接缺失')
             return False
@@ -432,7 +434,7 @@ class Article:
             return False   
 #_________________________________________________________
 
-    def get_pdf(self, save_path='.\\pdf\\'):#需要添加异常处理,如没有获取到文档
+    def get_pdf(self, save_path='./pdf/'):#需要添加异常处理,如没有获取到文档
         if self.get_doi():
 
             scihub_link='https://sci-hub.se/'+self.Doi
@@ -449,34 +451,60 @@ class Article:
 
             with open(save_path+file_name, 'wb') as f:
                 f.write(response.content)
+            print(f'下载完成,文件在{save_path}{file_name}')
             return True
         else:
             print("get_pdf:获取pdf失败,文章未定义,链接缺失")
             return False
 #_________________________________________
 
-    def get_ris(self,save_path=''):
-        if self.get_doi():
-            #TODO 参考下载方法
-            return True
+    def get_ris(self,save_path='./ris/'):
+        if self.get_title():
+            try:
+                service = ChromeService(executable_path='./chromedriver.exe')
+                options = webdriver.ChromeOptions()
+                options.add_argument('--headless=new')
+                driver = webdriver.Chrome(options=options,service=service) # type: ignore
+                driver.get(self.Url)
+                wait = WebDriverWait(driver, 20) 
+                wait.until(lambda driver: driver.execute_script("return document.readyState") == "complete")
+                
+                if self.Html_Driver :
+                    self.Html_Driver = driver.page_source
+
+                cite_this_button=driver.find_element(By.XPATH, '//button[text()="Cite This"]')
+                cite_this_button.click()
+
+                ris_button = driver.find_element(By.XPATH, '//a[@class="document-tab-link" and @title="RIS"]')
+                ris_button.click()
+
+                wait.until(lambda driver: driver.execute_script("return document.readyState") == "complete")
+                element = wait.until(EC.presence_of_element_located((By.XPATH, '//pre[contains(concat(" ", normalize-space(@class), " "), "text ris-text")]')))
+                
+                save_path=save_path if save_path[-1]=='/' else save_path+'/'
+                with open(save_path+self.Title+'.ris','w') as f:
+                    f.write(element.text)
+            except:
+                print(f'下载RIS失败{self.Url}')
+                return False
         else:
             print("get_ris:下载ris失败,没有标题,且链接缺失")
             return False
 
-
-        save_path = '.\\{}.pdf'.format(self.Title) if not save_path else save_path
-        #TODO 具体算法
-
-        return True
 #_________________________________________________________
 
-    def get_similar_link(self): #TODO
-        if self.Similar_Link:
+    def get_similar_link(self,**index): # index筛选选项 TODO 有问题
+        if self.Similar_Link and not index :
+            print('已有相似文献链接')
             return True
-        elif self.get_keywords():
+        elif index and index['similar type']!=self.Similar_Type:
+            self.Similar_Type=index
+
+        if self.get_keywords():
             base_url = "https://ieeexplore.ieee.org/search/searchresult.jsp?action=search&newsearch=true&matchBoolean=true&queryText="
             query = " OR ".join('("%s":"%s")' % ("All Metadata", item) for item in self.Keywords)
-            url = base_url + query
+            endline='&refinements=ContentType:Journals&refinements=ContentType:Magazines'
+            url = (base_url + query+endline) if self.Similar_Type else (base_url + query)
 
             service = ChromeService(executable_path='./chromedriver.exe')
             options = webdriver.ChromeOptions()

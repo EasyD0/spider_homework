@@ -29,8 +29,11 @@ def input_info():
                     break
                 else:
                     print('未输入有效信息,将重新开始')
+    requirement_index=0
+    requirement_index=int(input('获取参考文献按1,获取相似文献按2,全都要按3'))
+    requirement={1:'ref',2:'sim',3:'all'}.get(requirement_index)
 
-    return target_url, main_name, keywords, excel_path, url_name_key_index
+    return target_url, main_name, keywords, excel_path, url_name_key_index, requirement
 
 
 if __name__=='__main__':

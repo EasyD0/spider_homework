@@ -44,7 +44,7 @@ class Article:
     #主要成员
     Keywords=[]    #依赖html
     References_Link=[] #依赖html_driver
-    Similar_Type=False #false 表示不筛选
+    Similar_Type=False #false 表示不筛选 true 表示只要期刊和杂志
     Similar_Link=[]
     #参考成员
     Impact_Factor='' #依赖html_driver
@@ -493,14 +493,15 @@ class Article:
 
 #_________________________________________________________
 
-    def get_similar_link(self,**index): # index筛选选项 TODO 有问题
-        if self.Similar_Link and not index :
+    def get_similar_link(self,index=False,pages=1): # index筛选选项 TODO 有问题
+        if self.Similar_Link and index==self.Similar_Type :
             print('已有相似文献链接')
             return True
-        elif index and index['similar type']!=self.Similar_Type:
+        else:
             self.Similar_Type=index
 
         if self.get_keywords():
+
             base_url = "https://ieeexplore.ieee.org/search/searchresult.jsp?action=search&newsearch=true&matchBoolean=true&queryText="
             query = " OR ".join('("%s":"%s")' % ("All Metadata", item) for item in self.Keywords)
             endline='&refinements=ContentType:Journals&refinements=ContentType:Magazines'
@@ -511,24 +512,35 @@ class Article:
             options.add_argument('--headless=new')
             driver = webdriver.Chrome(options=options,service=service) # type: ignore
             driver.get(url)
-            WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME,'text-md-md-lh')))
-            
-            html_driver = driver.page_source
-            driver.quit()
 
-            #html_byte=urlopen(url).html.read()
-
-            soup = BeautifulSoup(html_driver, features="lxml")
-            results = soup.find_all("h3")
+            page=1
             link_list=[]
+            while page<=pages:
 
-            for results_i in results:
-                if results_i.find("a"):
-                    href=results_i.find("a").get("href")
-                    link_list.append(href)
+                WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CLASS_NAME,'text-md-md-lh')))
+            
+                html_driver = driver.page_source
+                soup = BeautifulSoup(html_driver, features="lxml")
+                results = soup.find_all("h3")
+            
+                #html_byte=urlopen(url).html.read()
+                for results_i in results:
+                    if results_i.find("a"):
+                        href=results_i.find("a").get("href")
+                        link_list.append(href)
+                
+                if page<pages:
+                    try:
+                        next_button=driver.find_element(By.XPATH, '//a[contains(concat(" ", normalize-space(@class), " "), "stats-Pagination_Next_11")]')
+                        next_button.click()
+                        page+=1
+                    except:
+                        print(f'无第{page}/{pages}页')
+                        break
+                
 
+            driver.quit()
             link_list=sorted(set(link_list),key=link_list.index)
-
             self.Similar_Link= ['https://ieeexplore.ieee.org'+link for link in link_list]
             return True
         else:

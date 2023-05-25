@@ -7,7 +7,14 @@ pdf/
 *.exe
 *.xlsx
 *.pyc
+*.pdf
+*.ris
+browsermob-proxy-2.1.4/
 
 
 
 
+__pycache__/article.cpython-311.pyc
+__pycache__/article.cpython-311.pyc
+__pycache__/article.cpython-311.pyc
+__pycache__/article.cpython-311.pyc

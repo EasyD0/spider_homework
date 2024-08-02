@@ -5,9 +5,13 @@ def input_info():
     keywords=[]
     url_name_key_index=0
 
-    temp_path =input('输入保存的位置和名称(默认为当前目录):')
-    excel_path=temp_path if temp_path else '.\\output.xlsx'
+    default_path='./excel/output.xlsx'
+    temp_path =input(f'输入保存的位置和名称,并确保文件夹存在(默认为当前目录{default_path}):')
+    excel_path=temp_path if temp_path else default_path
     print(f'保存位置为{excel_path}')
+
+    year=''
+    sim_num=20
 
     while True:
         target_url = input("输入主要链接:")
@@ -30,11 +34,24 @@ def input_info():
                 else:
                     print('未输入有效信息,将重新开始')
     requirement_index=0
-    requirement_index=int(input('获取参考文献按1,获取相似文献按2,全都要按3'))
+    while not(requirement_index in [1,2,3]):
+        try:
+            requirement_index=int(input('获取参考文献按1,获取相似文献按2,全都要按3: '))
+        except:
+            print('输入错误')  
+        if requirement_index not in [1,2,3]:
+            print('输入错误')
+
+    if requirement_index>1:
+        year=input('指定年份,如2020-2023: ')
+        try:
+            sim_num=int(input('搜寻相似文献的数目: '))
+        except:
+            sim_num=20
+    
     requirement={1:'ref',2:'sim',3:'all'}.get(requirement_index)
 
-    return target_url, main_name, keywords, excel_path, url_name_key_index, requirement
-
+    return target_url, main_name, keywords, excel_path, url_name_key_index, requirement ,year, sim_num
 
 if __name__=='__main__':
-    input_info()
+    print(input_info())

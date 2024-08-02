@@ -15,17 +15,17 @@ Target_Url,Excel_Path,Main_Name,Main_Article=input_info()
 ref_link_list=Main_Article.References_Link
 similar_link_list=Main_Article.Similar_Link
 
-'''#参考文献获取
+#参考文献获取
 with ThreadPoolExecutor(max_workers=4) as executor:
     futures  = [executor.submit(lambda url: Article(url), link) for link in ref_link_list]
     ref_article_list = [future.result() for future in as_completed(futures)]
-write_excel(ref_article_list,Excel_Path,'参考文献')'''
+write_excel(ref_article_list,Excel_Path,'参考文献')
 
 #相似文献获取
 with ThreadPoolExecutor(max_workers=4) as executor:
     futures  = [executor.submit(lambda url: Article(url), link) for link in similar_link_list]
     similar_article_list = [future.result() for future in as_completed(futures)]
-write_excel(similar_article_list,Excel_Path+'.xlsx','相似文献')
+write_excel(similar_article_list,Excel_Path,'相似文献')
 print('OK')
 
 
